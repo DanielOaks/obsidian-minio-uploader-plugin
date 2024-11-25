@@ -80,7 +80,7 @@ export default class MinioUploaderPlugin extends Plugin {
 						this.replaceText(editor, replaceText, replaceText2)
 						replaceText = replaceText2
 					})
-					const url = `${host}/${bucket}/${newPath}/${objectName}`.replace(/ /g, '%20') //将路径中的空格替换成%20，解决文件名存在空格时无法预览问题
+					const url = `${host}/${bucket}/${encodeURIComponent(newPath)}/${encodeURIComponent(objectName)}`
 					this.replaceText(editor, replaceText, this.wrapFileDependingOnType(this.getFileType(file), url, file.name))
 				}
 				input.click()
@@ -151,7 +151,7 @@ export default class MinioUploaderPlugin extends Plugin {
 			this.replaceText(editor, replaceText, replaceText2)
 			replaceText = replaceText2
 		})
-		const url = `${host}/${bucket}/${newPath}/${objectName}`.replace(/ /g, '%20') //将路径中的空格替换成%20，解决文件名存在空格时无法预览问题
+		const url = `${host}/${bucket}/${encodeURIComponent(newPath)}/${encodeURIComponent(objectName)}`
 		this.replaceText(editor, replaceText, this.wrapFileDependingOnType(this.getFileType(file), url, file.name))
 	}
 
