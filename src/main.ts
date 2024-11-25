@@ -10,7 +10,7 @@ interface MinioPluginSettings {
 	region: string;
 	bucket: string;
 	endpoint: string;
-	path: string;
+	rootPath: string;
 	port: number;
 	useSSL: boolean;
 	imgPreview: boolean;
@@ -26,7 +26,7 @@ const DEFAULT_SETTINGS: MinioPluginSettings = {
 	secretKey: '',
 	region: '',
 	endpoint: '',
-	path: '',
+	rootPath: '',
 	port: 443,
 	bucket: '',
 	useSSL: true,
@@ -64,12 +64,7 @@ export default class MinioUploaderPlugin extends Plugin {
 				input.onchange = async (event: Event) => {
 					const file = (event.target as any)?.files[0]
 
-					const { endpoint, port, useSSL, bucket, path } = this.settings
-
-					//新增年、月、日路径变量支持，自定义路径更灵活
-					const today = new Date()
-					const year = today.getFullYear() + '', month = ((today.getMonth() + 1) + '').padStart(2, '0'), day = (today.getDate() + '').padStart(2, '0')
-					const newPath = path.replace(/\{year\}/g, year).replace(/\{month\}/g, month).replace(/\{day\}/g, day)
+					const { endpoint, port, useSSL, bucket } = this.settings
 
 					const host = `http${useSSL ? 's' : ''}://${endpoint}${port === 443 || port === 80 ? '' : ':' + port}`
 					let replaceText = `[${t('Uploading')}：0%](${file.name})\n`;
@@ -80,7 +75,7 @@ export default class MinioUploaderPlugin extends Plugin {
 						this.replaceText(editor, replaceText, replaceText2)
 						replaceText = replaceText2
 					})
-					const url = `${host}/${bucket}/${encodeURIComponent(newPath)}/${encodeURIComponent(objectName)}`
+					const url = `${host}/${bucket}/${encodeURI(objectName)}`
 					this.replaceText(editor, replaceText, this.wrapFileDependingOnType(this.getFileType(file), url, file.name))
 				}
 				input.click()
@@ -135,12 +130,7 @@ export default class MinioUploaderPlugin extends Plugin {
 		if (!file || file && !this.getFileType(file)) return;
 
 		evt.preventDefault();
-		const { endpoint, port, useSSL, bucket, path } = this.settings
-
-		//替换变量生成新路径
-		const today = new Date()
-		const year = today.getFullYear() + '', month = ((today.getMonth() + 1) + '').padStart(2, '0'), day = (today.getDate() + '').padStart(2, '0')
-		const newPath = path.replace(/\{year\}/g, year).replace(/\{month\}/g, month).replace(/\{day\}/g, day)
+		const { endpoint, port, useSSL, bucket } = this.settings
 
 		const host = `http${useSSL ? 's' : ''}://${endpoint}${port === 443 || port === 80 ? '' : ':' + port}`
 		let replaceText = `[${t('Uploading')}：0%](${file.name})\n`;
@@ -151,7 +141,7 @@ export default class MinioUploaderPlugin extends Plugin {
 			this.replaceText(editor, replaceText, replaceText2)
 			replaceText = replaceText2
 		})
-		const url = `${host}/${bucket}/${encodeURIComponent(newPath)}/${encodeURIComponent(objectName)}`
+		const url = `${host}/${bucket}/${this.settings.rootPath ? `${encodeURI(this.settings.rootPath)}/` : ""}${encodeURI(objectName)}`
 		this.replaceText(editor, replaceText, this.wrapFileDependingOnType(this.getFileType(file), url, file.name))
 	}
 
@@ -172,6 +162,7 @@ export default class MinioUploaderPlugin extends Plugin {
 				break;
 			default:
 		}
+
 		switch (this.settings.nameRule) {
 			case 'local':
 				objectName += file.name
@@ -200,7 +191,7 @@ export default class MinioUploaderPlugin extends Plugin {
 				})
 
 				const objectName = this.genObjectName(file)
-				minioClient.presignedPutObject(this.settings.bucket, this.settings.path + '/' + objectName, 1 * 60 * 60).then(presignedUrl => {
+				minioClient.presignedPutObject(this.settings.bucket, this.settings.rootPath + '/' + objectName, 1 * 60 * 60).then(presignedUrl => {
 					const xhr = new XMLHttpRequest();
 					xhr.upload.addEventListener("progress", (progressEvent) => {
 						if (progress) progress(Math.round((progressEvent.loaded / progressEvent.total) * 100))
@@ -380,16 +371,6 @@ class MinioSettingTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				}));
 		new Setting(containerEl)
-		.setName('Path')
-		.setDesc(t('Optional'))
-		.addText(text => text
-			.setPlaceholder(t('Enter your custom path'))
-			.setValue(this.plugin.settings.path)
-			.onChange(async (value) => {
-				this.plugin.settings.path = value;
-				await this.plugin.saveSettings();
-			}));
-		new Setting(containerEl)
 			.setName('Endpoint')
 			.setDesc(t('Required'))
 			.addText(text => text
@@ -419,6 +400,16 @@ class MinioSettingTab extends PluginSettingTab {
 				}));
 		containerEl.createEl("h3", { text: t("Object rules") });
 		containerEl.createEl("br");
+		new Setting(containerEl)
+		.setName('Root path')
+		.setDesc(t('Enter your custom path'))
+		.addText(text => text
+			.setPlaceholder('obsidian')
+			.setValue(this.plugin.settings.rootPath)
+			.onChange(async (value) => {
+				this.plugin.settings.rootPath = value;
+				await this.plugin.saveSettings();
+			}));
 		new Setting(containerEl)
 			.setName(t('Object naming rules'))
 			.setDesc(t('Naming rules description'))

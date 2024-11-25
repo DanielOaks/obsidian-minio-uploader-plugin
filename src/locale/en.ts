@@ -8,9 +8,9 @@ export default {
 	'Enter your secret key': 'Enter your secret key',
 	'Enter your region': 'Enter your region',
 	'Enter your bucket': 'Enter your bucket',
-	'Enter your custom path': 'Enter your custom path, support variable {year} {month} {day}',
 	'Enter your port': 'Enter your port',
 
+	'Enter your custom path': 'Enter the root path to store all files in, with no trailing spaces.',
 	'Object rules': 'Object rules',
 	'Object naming rules': 'Naming rules',
 	'Naming rules description': 'Naming a local file name will overwrite a file with the same name, so it is necessary to set the bucket appropriately. However, timestamp naming is not readable.',
